@@ -4,6 +4,7 @@ from sqlalchemy import inspect
 
 from routes.exception_types import router as et_router
 from routes.exceptions import router as ex_router
+from routes.users import router as users_router
 
 app = FastAPI(title="EMS API", version="0.1.0")
 
@@ -26,3 +27,5 @@ def debug_dsn():
 # register routers
 app.include_router(et_router)
 app.include_router(ex_router)
+app.include_router(users_router)
+
