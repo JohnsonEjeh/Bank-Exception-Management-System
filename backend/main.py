@@ -6,6 +6,21 @@ from routes.exception_types import router as et_router
 from routes.exceptions import router as ex_router
 from routes.users import router as users_router
 from routes.attachments import router as att_router
+from fastapi import FastAPI
+from fastapi.middleware.cors import CORSMiddleware
+
+# allow your dev frontend
+ALLOWED_ORIGINS = ["http://localhost:5173"]
+
+app = FastAPI(title="EMS API", version="0.1.0")
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=ALLOWED_ORIGINS,
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
+
 
 app = FastAPI(title="EMS API", version="0.1.0")
 
