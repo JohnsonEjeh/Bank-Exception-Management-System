@@ -1,6 +1,6 @@
 from sqlalchemy.orm import Mapped, mapped_column
 from sqlalchemy import String, Boolean
-from base import Base, TimestampMixin
+from .base import Base, TimestampMixin  # <-- RELATIVE import
 
 class User(Base, TimestampMixin):
     __tablename__ = "users"
