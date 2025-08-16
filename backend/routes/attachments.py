@@ -4,7 +4,7 @@ from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
 
 from db_session import get_session
-from storage.s3 import ensure_bucket, presign_put, presign_get
+from storage.s3 import ensure_bucket, presign_put, presign_get, ensure_bucket_with_cors
 from schemas.attachment import PresignUploadIn, PresignUploadOut, PresignDownloadIn, PresignDownloadOut
 from models.attachment import Attachment
 from models.exception import Exception as ExceptionModel
@@ -18,7 +18,7 @@ def presign_upload(payload: PresignUploadIn, db: Session = Depends(get_session))
     if not exc:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Exception not found")
 
-    ensure_bucket()
+    ensure_bucket_with_cors()
     # key pattern: exceptions/{id}/{uuid}_{filename}
     safe_name = payload.filename.replace("\\", "/").split("/")[-1]
     key = f"exceptions/{payload.exception_id}/{uuid.uuid4().hex}_{safe_name}"
