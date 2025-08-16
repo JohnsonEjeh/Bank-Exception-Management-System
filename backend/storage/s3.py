@@ -1,8 +1,27 @@
-from typing import Optional
+from typing import Optional, List
 import boto3
 from botocore.client import Config
 from botocore.exceptions import ClientError
 from config import settings
+
+def put_bucket_cors(origins: List[str]):
+    s3 = _client()
+    cors = {
+        "CORSRules": [
+            {
+                "AllowedMethods": ["PUT", "GET"],
+                "AllowedOrigins": origins,
+                "AllowedHeaders": ["*"],
+                "ExposeHeaders": ["ETag"],
+                "MaxAgeSeconds": 3600,
+            }
+        ]
+    }
+    s3.put_bucket_cors(Bucket=settings.s3_bucket, CORSConfiguration=cors)
+
+def ensure_bucket_with_cors():
+    ensure_bucket()
+    put_bucket_cors([settings.frontend_origin])
 
 def _client():
     # For MinIO, signature v4 + provide endpoint_url
