@@ -4,8 +4,9 @@ from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
 
 from db_session import get_session
-from storage.s3 import ensure_bucket, presign_put, presign_get, ensure_bucket_with_cors
-from schemas.attachment import PresignUploadIn, PresignUploadOut, PresignDownloadIn, PresignDownloadOut
+from storage.s3 import ensure_bucket, presign_put, presign_get, ensure_bucket_with_cors, head_object
+from schemas.attachment import PresignUploadIn, PresignUploadOut, PresignDownloadIn, PresignDownloadOut, AttachmentOut, \
+    FinalizeIn
 from models.attachment import Attachment
 from models.exception import Exception as ExceptionModel
 
@@ -66,3 +67,34 @@ def list_for_exception(exc_id: int, db: Session = Depends(get_session)):
         }
         for r in rows
     ]
+
+@router.post("/finalize", response_model=AttachmentOut)
+def finalize_upload(payload: FinalizeIn, db: Session = Depends(get_session)):
+    att = db.get(Attachment, payload.attachment_id)
+    if not att:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Attachment not found")
+
+    # Query S3 for metadata
+    meta = head_object(att.s3_key)
+    size = int(meta.get("ContentLength") or 0)
+    etag = meta.get("ETag")
+    if etag:
+        etag = etag.strip('"')  # MinIO/S3 returns quoted ETag
+
+    att.size = size
+    att.etag = etag
+    if payload.sha256:
+        att.sha256 = payload.sha256
+    db.commit()
+    db.refresh(att)
+    return att
+
+@router.get("/by-exception/{exc_id}", response_model=List[AttachmentOut])
+def list_for_exception(exc_id: int, db: Session = Depends(get_session)):
+    rows = (
+        db.query(Attachment)
+        .filter(Attachment.exception_id == exc_id)
+        .order_by(Attachment.id.desc())
+        .all()
+    )
+    return rows

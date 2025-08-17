@@ -17,3 +17,19 @@ class PresignDownloadIn(BaseModel):
 
 class PresignDownloadOut(BaseModel):
     download_url: str
+
+class FinalizeIn(BaseModel):
+    attachment_id: int
+    sha256: Optional[str] = None  # optional client-provided checksum
+
+class AttachmentOut(BaseModel):
+    id: int
+    filename: str
+    mime: Optional[str] = None
+    size: Optional[int] = None
+    etag: Optional[str] = None
+    uploaded_by: Optional[int] = None
+    uploaded_at: Optional[str] = None
+
+    class Config:
+        from_attributes = True

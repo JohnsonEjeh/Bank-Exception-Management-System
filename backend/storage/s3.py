@@ -38,6 +38,11 @@ def _client():
         verify=settings.s3_secure,
     )
 
+def head_object(key: str) -> dict:
+    s3 = _client()
+    return s3.head_object(Bucket=settings.s3_bucket, Key=key)
+
+
 def ensure_bucket():
     s3 = _client()
     try:
