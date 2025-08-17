@@ -30,6 +30,8 @@ type AttachmentListItem = {
   mime?: string | null
   uploaded_by?: number | null
   uploaded_at?: string | null
+  size?: number | null
+etag?: string | null
 }
 
 const users = ref<User[]>([])
@@ -198,6 +200,10 @@ async function uploadFile() {
     if (!putRes.ok) {
       throw new Error(`Upload failed: ${putRes.status} ${putRes.statusText}`)
     }
+    await api('/attachments/finalize', {
+      method: 'POST',
+      body: JSON.stringify({ attachment_id: presign.attachment_id })
+    })
 
     message.value = `✅ Successfully uploaded ${f.name}`
     if (fileInput.value) fileInput.value.value = ''
@@ -212,6 +218,28 @@ async function uploadFile() {
 function formatDate(dateStr: string | null | undefined): string {
   if (!dateStr) return 'Unknown'
   return new Date(dateStr).toLocaleString()
+}
+
+async function downloadAttachment(id: number) {
+  try {
+    const out = await api<{ download_url: string }>('/attachments/presign-download', {
+      method: 'POST',
+      body: JSON.stringify({ attachment_id: id })
+    })
+    window.open(out.download_url, '_blank')
+  } catch (e) {
+    message.value = `❌ Download failed: ${e}`
+  }
+}
+
+
+function formatBytes(n?: number | null): string {
+  if (!n && n !== 0) return ''
+  const units = ['B','KB','MB','GB','TB']
+  let i = 0
+  let v = n
+  while (v >= 1024 && i < units.length - 1) { v = v / 1024; i++ }
+  return `${v.toFixed(v < 10 && i > 0 ? 1 : 0)} ${units[i]}`
 }
 
 onMounted(refreshAll)
@@ -505,7 +533,14 @@ onMounted(refreshAll)
                 <div class="attachment-meta">
                   <span class="attachment-type">{{ a.mime || 'unknown type' }}</span>
                   <span class="attachment-date">{{ formatDate(a.uploaded_at) }}</span>
+                  <span class="attachment-type">{{ a.mime || 'unknown type' }}</span>
+                  <span v-if="a.size" class="attachment-type">{{ formatBytes(a.size) }}</span>
+                  <span v-if="a.etag" class="attachment-type">etag: {{ a.etag.slice(0,8) }}…</span>
+                  <span class="attachment-date">{{ formatDate(a.uploaded_at) }}</span>
                 </div>
+              </div>
+              <div style="margin-top:.5rem;">
+                <button class="btn btn-secondary" @click="downloadAttachment(a.id)">Download</button>
               </div>
             </div>
           </div>
