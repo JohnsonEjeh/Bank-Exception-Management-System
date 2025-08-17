@@ -6,13 +6,24 @@ from db_session import get_session
 from models.exception import Exception as ExceptionModel
 from schemas.exception import ExceptionCreate, ExceptionOut
 from schemas.transitions import AssignIn, TransitionIn, ApprovalIn
-from services.exceptions import assign_exception, transition_exception, approve_exception
+from services.exceptions import (
+    assign_exception, transition_exception, approve_exception, compute_due_at
+)
 
 router = APIRouter(prefix="/exceptions", tags=["exceptions"])
 
 @router.post("", response_model=ExceptionOut, status_code=201)
 def create_exception(payload: ExceptionCreate, db: Session = Depends(get_session)):
-    obj = ExceptionModel(**payload.dict())
+    try:
+        data = payload.model_dump(exclude_none=True)
+    except AttributeError:
+        data = payload.dict(exclude_none=True)
+
+    if "due_at" not in data:
+        data["due_at"] = compute_due_at(db, data["type_id"])
+        print("CREATE due_at:", data["due_at"].isoformat())
+
+    obj = ExceptionModel(**data)
     db.add(obj)
     db.commit()
     db.refresh(obj)

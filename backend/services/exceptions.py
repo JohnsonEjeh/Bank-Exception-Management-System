@@ -33,6 +33,17 @@ TRANSITIONS = {
     "CLOSED": set(),
 }
 
+from datetime import timedelta
+from models.exception_type import ExceptionType
+
+def compute_due_at(db: Session, type_id: int) -> datetime:
+    et = db.get(ExceptionType, type_id)
+    if not et:
+        raise HTTPException(status_code=400, detail="Invalid exception type")
+    hours = et.default_sla_hours or 0
+    return datetime.now(timezone.utc) + timedelta(hours=hours)
+
+
 def _audit(
     db: Session,
     actor_id: Optional[int],

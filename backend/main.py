@@ -7,10 +7,21 @@ from routes.exception_types import router as et_router
 from routes.exceptions import router as ex_router
 from routes.users import router as users_router
 from routes.attachments import router as att_router
+from scheeduler import maybe_start_scheduler
 
 ALLOWED_ORIGINS = ["http://localhost:5173"]  # dev frontend
 
 app = FastAPI(title="EMS API", version="0.1.0")
+
+app.on_event("startup")
+def _start_scheduler():
+    maybe_start_scheduler(app)
+
+@app.on_event("shutdown")
+def _stop_scheduler():
+    sched = getattr(app.state, "scheduler", None)
+    if sched:
+        sched.shutdown(wait=False)
 
 app.add_middleware(
     CORSMiddleware,
