@@ -31,6 +31,7 @@ class Settings(BaseModel):
     s3_secret_key: str = _clean(os.getenv("S3_SECRET_KEY"), "adminadmin")
     s3_bucket: str = _clean(os.getenv("S3_BUCKET"), "ems-attachments")
     s3_secure: bool = os.getenv("S3_SECURE", "false").lower() == "true"
+    frontend_origin: str = _clean(os.getenv("FRONTEND_ORIGIN"), "http://localhost:5173")
 
     @property
     def DATABASE_URL(self) -> str:

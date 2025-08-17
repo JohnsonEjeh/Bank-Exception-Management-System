@@ -1,18 +1,17 @@
-from fastapi import FastAPI
-from db import db_health, engine
+from fastapi import FastAPI, Request
+from fastapi.middleware.cors import CORSMiddleware
 from sqlalchemy import inspect
 
+from db import db_health, engine
 from routes.exception_types import router as et_router
 from routes.exceptions import router as ex_router
 from routes.users import router as users_router
 from routes.attachments import router as att_router
-from fastapi import FastAPI
-from fastapi.middleware.cors import CORSMiddleware
 
-# allow your dev frontend
-ALLOWED_ORIGINS = ["http://localhost:5173"]
+ALLOWED_ORIGINS = ["http://localhost:5173"]  # dev frontend
 
 app = FastAPI(title="EMS API", version="0.1.0")
+
 app.add_middleware(
     CORSMiddleware,
     allow_origins=ALLOWED_ORIGINS,
@@ -21,8 +20,12 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-
-app = FastAPI(title="EMS API", version="0.1.0")
+@app.middleware("http")
+async def log_requests(request: Request, call_next):
+    print("REQ", request.method, request.url.path)
+    resp = await call_next(request)
+    print("RES", resp.status_code, request.method, request.url.path)
+    return resp
 
 @app.get("/healthz")
 def healthz():
@@ -40,10 +43,16 @@ def debug_dsn():
     url = settings.DATABASE_URL.replace(settings.db_password, "******")
     return {"database_url": url}
 
-# register routers
+@app.get("/debug/routes")
+def debug_routes():
+    out = []
+    for r in app.router.routes:
+        methods = sorted(m for m in getattr(r, "methods", set()) if m != "HEAD")
+        path = getattr(r, "path", None) or getattr(r, "path_format", None)
+        out.append({"path": path, "methods": methods})
+    return out
+
 app.include_router(et_router)
 app.include_router(ex_router)
 app.include_router(users_router)
 app.include_router(att_router)
-
-
